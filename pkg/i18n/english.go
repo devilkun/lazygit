@@ -437,6 +437,7 @@ type TranslationSet struct {
 	SubmodulesTitle                     string
 	NavigationTitle                     string
 	SuggestionsTitle                    string
+	ExtrasTitle                         string
 	PushingTagStatus                    string
 	PullRequestURLCopiedToClipboard     string
 	CommitMessageCopiedToClipboard      string
@@ -449,6 +450,10 @@ type TranslationSet struct {
 	FocusCommandLog                     string
 	CommandLogHeader                    string
 	RandomTip                           string
+	SelectParentCommitForMerge          string
+	ToggleWhitespaceInDiffView          string
+	IgnoringWhitespaceInDiffView        string
+	ShowingWhitespaceInDiffView         string
 	Spans                               Spans
 }
 
@@ -979,6 +984,7 @@ func englishTranslationSet() TranslationSet {
 		SubmodulesTitle:                     "Submodules",
 		NavigationTitle:                     "List Panel Navigation",
 		SuggestionsTitle:                    "Suggestions",
+		ExtrasTitle:                         "Extras",
 		PushingTagStatus:                    "pushing tag",
 		PullRequestURLCopiedToClipboard:     "Pull request URL copied to clipboard",
 		CommitMessageCopiedToClipboard:      "Commit message copied to clipboard",
@@ -991,6 +997,10 @@ func englishTranslationSet() TranslationSet {
 		FocusCommandLog:                     "Focus command log",
 		CommandLogHeader:                    "You can hide/focus this panel by pressing '%s' or hide it permanently in your config with `gui.showCommandLog: false`\n",
 		RandomTip:                           "Random Tip",
+		SelectParentCommitForMerge:          "Select parent commit for merge",
+		ToggleWhitespaceInDiffView:          "Toggle whether or not whitespace changes are shown in the diff view",
+		IgnoringWhitespaceInDiffView:        "Whitespace will be ignored in the diff view",
+		ShowingWhitespaceInDiffView:         "Whitespace will be shown in the diff view",
 		Spans: Spans{
 			// TODO: combine this with the original keybinding descriptions (those are all in lowercase atm)
 			CheckoutCommit:                    "Checkout commit",

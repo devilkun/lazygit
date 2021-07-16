@@ -4,6 +4,15 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/aybabtme/humanlog"
+	"github.com/jesseduffield/lazygit/pkg/commands"
+	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
+	"github.com/jesseduffield/lazygit/pkg/config"
+	"github.com/jesseduffield/lazygit/pkg/env"
+	"github.com/jesseduffield/lazygit/pkg/gui"
+	"github.com/jesseduffield/lazygit/pkg/i18n"
+	"github.com/jesseduffield/lazygit/pkg/updates"
+	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,17 +21,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/aybabtme/humanlog"
-	"github.com/jesseduffield/lazygit/pkg/commands"
-	"github.com/jesseduffield/lazygit/pkg/commands/oscommands"
-	"github.com/jesseduffield/lazygit/pkg/config"
-	"github.com/jesseduffield/lazygit/pkg/env"
-	"github.com/jesseduffield/lazygit/pkg/gui"
-	"github.com/jesseduffield/lazygit/pkg/i18n"
-	"github.com/jesseduffield/lazygit/pkg/secureexec"
-	"github.com/jesseduffield/lazygit/pkg/updates"
-	"github.com/sirupsen/logrus"
 )
 
 // App struct
@@ -318,6 +316,9 @@ func TailLogs() {
 
 	fmt.Printf("Tailing log file %s\n\n", logFilePath)
 
+	opts := humanlog.DefaultOptions
+	opts.Truncates = false
+
 	_, err = os.Stat(logFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -326,22 +327,5 @@ func TailLogs() {
 		log.Fatal(err)
 	}
 
-	cmd := secureexec.Command("tail", "-f", logFilePath)
-
-	stdout, _ := cmd.StdoutPipe()
-	if err := cmd.Start(); err != nil {
-		log.Fatal(err)
-	}
-
-	opts := humanlog.DefaultOptions
-	opts.Truncates = false
-	if err := humanlog.Scanner(stdout, os.Stdout, opts); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		log.Fatal(err)
-	}
-
-	os.Exit(0)
+	TailLogsForPlatform(logFilePath, opts)
 }

@@ -41,6 +41,7 @@ gui:
   skipUnstageLineWarning: false
   skipStashWarning: true
   showFileTree: false # for rendering changes files in a tree format
+  showListFooter: true # for seeing the '5 of 20' message in list panels
   showRandomTip: true
   showCommandLog: true
   commandLogSize: 8
@@ -54,13 +55,17 @@ git:
     # extra args passed to `git merge`, e.g. --no-ff
     args: ''
   pull:
-    mode: 'merge' # one of 'merge' | 'rebase' | 'ff-only'
+    mode: 'auto' # one of 'auto' | 'merge' | 'rebase' | 'ff-only', auto reads from git configuration
   skipHookPrefix: WIP
   autoFetch: true
   branchLogCmd: 'git log --graph --color=always --abbrev-commit --decorate --date=relative --pretty=medium {{branchName}} --'
   allBranchesLogCmd: 'git log --graph --all --color=always --abbrev-commit --decorate --date=relative  --pretty=medium'
   overrideGpg: false # prevents lazygit from spawning a separate process when using GPG
   disableForcePushing: false
+  parseEmoji: false
+os:
+  editCommand: '' # see 'Configuring File Editing' section
+  openCommand: ''
 refresher:
   refreshInterval: 10 # file/submodule refresh interval in seconds
   fetchInterval: 60 # re-fetch interval in seconds
@@ -213,6 +218,25 @@ os:
 os:
   openCommand: 'open {{filename}}'
 ```
+
+### Configuring File Editing
+
+Lazygit will edit a file with the first set editor in the following:
+
+1. config.yaml
+
+```yaml
+os:
+  editCommand: 'vim' # as an example
+```
+
+2. \$(git config core.editor)
+3. \$GIT_EDITOR
+4. \$VISUAL
+5. \$EDITOR
+6. \$(which vi)
+
+Lazygit will log an error if none of these options are set.
 
 ### Recommended Config Values
 

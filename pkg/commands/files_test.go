@@ -333,11 +333,12 @@ func TestGitCommandDiscardAllFileChanges(t *testing.T) {
 // TestGitCommandDiff is a function.
 func TestGitCommandDiff(t *testing.T) {
 	type scenario struct {
-		testName string
-		command  func(string, ...string) *exec.Cmd
-		file     *models.File
-		plain    bool
-		cached   bool
+		testName         string
+		command          func(string, ...string) *exec.Cmd
+		file             *models.File
+		plain            bool
+		cached           bool
+		ignoreWhitespace bool
 	}
 
 	scenarios := []scenario{
@@ -356,6 +357,7 @@ func TestGitCommandDiff(t *testing.T) {
 			},
 			false,
 			false,
+			false,
 		},
 		{
 			"cached",
@@ -372,6 +374,7 @@ func TestGitCommandDiff(t *testing.T) {
 			},
 			false,
 			true,
+			false,
 		},
 		{
 			"plain",
@@ -387,6 +390,7 @@ func TestGitCommandDiff(t *testing.T) {
 				Tracked:          true,
 			},
 			true,
+			false,
 			false,
 		},
 		{
@@ -404,6 +408,24 @@ func TestGitCommandDiff(t *testing.T) {
 			},
 			false,
 			false,
+			false,
+		},
+		{
+			"Default case (ignore whitespace)",
+			func(cmd string, args ...string) *exec.Cmd {
+				assert.EqualValues(t, "git", cmd)
+				assert.EqualValues(t, []string{"diff", "--submodule", "--no-ext-diff", "--color=always", "--ignore-all-space", "--", "test.txt"}, args)
+
+				return secureexec.Command("echo")
+			},
+			&models.File{
+				Name:             "test.txt",
+				HasStagedChanges: false,
+				Tracked:          true,
+			},
+			false,
+			false,
+			true,
 		},
 	}
 
@@ -411,7 +433,7 @@ func TestGitCommandDiff(t *testing.T) {
 		t.Run(s.testName, func(t *testing.T) {
 			gitCmd := NewDummyGitCommand()
 			gitCmd.OSCommand.Command = s.command
-			gitCmd.WorktreeFileDiff(s.file, s.plain, s.cached)
+			gitCmd.WorktreeFileDiff(s.file, s.plain, s.cached, s.ignoreWhitespace)
 		})
 	}
 }
@@ -720,6 +742,7 @@ func TestGitCommandRemoveUntrackedFiles(t *testing.T) {
 func TestEditFileCmdStr(t *testing.T) {
 	type scenario struct {
 		filename          string
+		configEditCommand string
 		command           func(string, ...string) *exec.Cmd
 		getenv            func(string) string
 		getGitConfigValue func(string) (string, error)
@@ -729,6 +752,7 @@ func TestEditFileCmdStr(t *testing.T) {
 	scenarios := []scenario{
 		{
 			"test",
+			"",
 			func(name string, arg ...string) *exec.Cmd {
 				return secureexec.Command("exit", "1")
 			},
@@ -739,11 +763,30 @@ func TestEditFileCmdStr(t *testing.T) {
 				return "", nil
 			},
 			func(cmdStr string, err error) {
-				assert.EqualError(t, err, "No editor defined in $GIT_EDITOR, $VISUAL, $EDITOR, or git config")
+				assert.EqualError(t, err, "No editor defined in config file, $GIT_EDITOR, $VISUAL, $EDITOR, or git config")
 			},
 		},
 		{
 			"test",
+			"nano",
+			func(name string, args ...string) *exec.Cmd {
+				assert.Equal(t, "which", name)
+				return secureexec.Command("echo")
+			},
+			func(env string) string {
+				return ""
+			},
+			func(cf string) (string, error) {
+				return "", nil
+			},
+			func(cmdStr string, err error) {
+				assert.NoError(t, err)
+				assert.Equal(t, "nano \"test\"", cmdStr)
+			},
+		},
+		{
+			"test",
+			"",
 			func(name string, arg ...string) *exec.Cmd {
 				assert.Equal(t, "which", name)
 				return secureexec.Command("exit", "1")
@@ -761,6 +804,7 @@ func TestEditFileCmdStr(t *testing.T) {
 		},
 		{
 			"test",
+			"",
 			func(name string, arg ...string) *exec.Cmd {
 				assert.Equal(t, "which", name)
 				return secureexec.Command("exit", "1")
@@ -781,6 +825,7 @@ func TestEditFileCmdStr(t *testing.T) {
 		},
 		{
 			"test",
+			"",
 			func(name string, arg ...string) *exec.Cmd {
 				assert.Equal(t, "which", name)
 				return secureexec.Command("exit", "1")
@@ -802,6 +847,7 @@ func TestEditFileCmdStr(t *testing.T) {
 		},
 		{
 			"test",
+			"",
 			func(name string, arg ...string) *exec.Cmd {
 				assert.Equal(t, "which", name)
 				return secureexec.Command("echo")
@@ -819,6 +865,7 @@ func TestEditFileCmdStr(t *testing.T) {
 		},
 		{
 			"file/with space",
+			"",
 			func(name string, args ...string) *exec.Cmd {
 				assert.Equal(t, "which", name)
 				return secureexec.Command("echo")
@@ -838,6 +885,7 @@ func TestEditFileCmdStr(t *testing.T) {
 
 	for _, s := range scenarios {
 		gitCmd := NewDummyGitCommand()
+		gitCmd.Config.GetUserConfig().OS.EditCommand = s.configEditCommand
 		gitCmd.OSCommand.Command = s.command
 		gitCmd.OSCommand.Getenv = s.getenv
 		gitCmd.getGitConfigValue = s.getGitConfigValue

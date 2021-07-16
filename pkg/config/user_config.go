@@ -35,6 +35,7 @@ type GuiConfig struct {
 	Theme                    ThemeConfig        `yaml:"theme"`
 	CommitLength             CommitLengthConfig `yaml:"commitLength"`
 	SkipNoStagedFilesWarning bool               `yaml:"skipNoStagedFilesWarning"`
+	ShowListFooter           bool               `yaml:"showListFooter"`
 	ShowFileTree             bool               `yaml:"showFileTree"`
 	ShowRandomTip            bool               `yaml:"showRandomTip"`
 	ShowCommandLog           bool               `yaml:"showCommandLog"`
@@ -65,6 +66,7 @@ type GitConfig struct {
 	OverrideGpg         bool                          `yaml:"overrideGpg"`
 	DisableForcePushing bool                          `yaml:"disableForcePushing"`
 	CommitPrefixes      map[string]CommitPrefixConfig `yaml:"commitPrefixes"`
+	ParseEmoji          bool                          `yaml:"parseEmoji"`
 }
 
 type PagingConfig struct {
@@ -164,6 +166,7 @@ type KeybindingUniversalConfig struct {
 	SubmitEditorText             string `yaml:"submitEditorText"`
 	AppendNewline                string `yaml:"appendNewline"`
 	ExtrasMenu                   string `yaml:"extrasMenu"`
+	ToggleWhitespaceInDiffView   string `yaml:"toggleWhitespaceInDiffView"`
 }
 
 type KeybindingStatusConfig struct {
@@ -248,6 +251,9 @@ type KeybindingSubmodulesConfig struct {
 
 // OSConfig contains config on the level of the os
 type OSConfig struct {
+	// EditCommand is the command for editing a file
+	EditCommand string `yaml:"editCommand,omitempty"`
+
 	// OpenCommand is the command for opening a file
 	OpenCommand string `yaml:"openCommand,omitempty"`
 
@@ -303,6 +309,7 @@ func GetDefaultConfig() *UserConfig {
 			},
 			CommitLength:             CommitLengthConfig{Show: true},
 			SkipNoStagedFilesWarning: false,
+			ShowListFooter:           true,
 			ShowCommandLog:           true,
 			ShowFileTree:             false,
 			ShowRandomTip:            true,
@@ -318,7 +325,7 @@ func GetDefaultConfig() *UserConfig {
 				Args:         "",
 			},
 			Pull: PullConfig{
-				Mode: "merge",
+				Mode: "auto",
 			},
 			SkipHookPrefix:      "WIP",
 			AutoFetch:           true,
@@ -326,6 +333,7 @@ func GetDefaultConfig() *UserConfig {
 			AllBranchesLogCmd:   "git log --graph --all --color=always --abbrev-commit --decorate --date=relative  --pretty=medium",
 			DisableForcePushing: false,
 			CommitPrefixes:      map[string]CommitPrefixConfig(nil),
+			ParseEmoji:          false,
 		},
 		Refresher: RefresherConfig{
 			RefreshInterval: 10,
@@ -399,6 +407,7 @@ func GetDefaultConfig() *UserConfig {
 				SubmitEditorText:             "<enter>",
 				AppendNewline:                "<a-enter>",
 				ExtrasMenu:                   "@",
+				ToggleWhitespaceInDiffView:   "<c-w>",
 			},
 			Status: KeybindingStatusConfig{
 				CheckForUpdate:      "u",
