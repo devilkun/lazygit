@@ -2,34 +2,39 @@ package utils
 
 import (
 	"regexp"
+	"sync"
+
+	"github.com/gookit/color"
+	"github.com/jesseduffield/lazygit/pkg/gui/style"
+	"github.com/samber/lo"
+)
+
+var (
+	decoloriseCache = make(map[string]string)
+	decoloriseMutex sync.RWMutex
+
+	colorCodeRe = regexp.MustCompile(`\x1B\[([0-9]{1,3}(;[0-9]{1,3})*)?[mGK]`)
+	linkRe      = regexp.MustCompile(`\x1B]8;[^;]*;(.*?)(\x1B.|\x07)`)
 )
 
 // Decolorise strips a string of color
 func Decolorise(str string) string {
-	re := regexp.MustCompile(`\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]`)
-	return re.ReplaceAllString(str, "")
-}
+	decoloriseMutex.RLock()
+	val, ok := decoloriseCache[str]
+	decoloriseMutex.RUnlock()
 
-func getPadWidths(stringArrays [][]string) []int {
-	maxWidth := 0
-	for _, stringArray := range stringArrays {
-		if len(stringArray) > maxWidth {
-			maxWidth = len(stringArray)
-		}
+	if ok {
+		return val
 	}
-	if maxWidth-1 < 0 {
-		return []int{}
-	}
-	padWidths := make([]int, maxWidth-1)
-	for i := range padWidths {
-		for _, strings := range stringArrays {
-			uncoloredString := Decolorise(strings[i])
-			if len(uncoloredString) > padWidths[i] {
-				padWidths[i] = len(uncoloredString)
-			}
-		}
-	}
-	return padWidths
+
+	ret := colorCodeRe.ReplaceAllString(str, "")
+	ret = linkRe.ReplaceAllString(ret, "")
+
+	decoloriseMutex.Lock()
+	decoloriseCache[str] = ret
+	decoloriseMutex.Unlock()
+
+	return ret
 }
 
 func IsValidHexValue(v string) bool {
@@ -51,4 +56,20 @@ func IsValidHexValue(v string) bool {
 	}
 
 	return true
+}
+
+func SetCustomColors(customColors map[string]string) map[string]*style.TextStyle {
+	return lo.MapValues(customColors, func(c string, key string) *style.TextStyle {
+		value := CustomColorStyle(c)
+		return &value
+	})
+}
+
+// CustomColorStyle returns the text style for a color that the user
+// configured, either by the name of a terminal color or as a hex value.
+func CustomColorStyle(c string) style.TextStyle {
+	if s, ok := style.ColorMap[c]; ok {
+		return s.Foreground
+	}
+	return style.New().SetFg(style.NewRGBColor(color.HEX(c, false)))
 }

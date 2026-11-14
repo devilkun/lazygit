@@ -18,9 +18,6 @@ func TestMerge(t *testing.T) {
 		expectedStr   string
 	}
 
-	// on CI we've got no color capability so we're forcing it here
-	color.ForceSetColorLevel(terminfo.ColorLevelMillions)
-
 	fgRed := color.FgRed
 	bgRed := color.BgRed
 	fgBlue := color.FgBlue
@@ -37,19 +34,19 @@ func TestMerge(t *testing.T) {
 		{
 			"no color",
 			nil,
-			TextStyle{style: color.Style{}},
+			TextStyle{Style: color.Style{}},
 			"foo",
 		},
 		{
 			"only fg color",
 			[]TextStyle{FgRed},
-			TextStyle{fg: &Color{basic: &fgRed}, style: color.Style{fgRed}},
+			TextStyle{fg: &Color{basic: &fgRed}, Style: color.Style{fgRed}},
 			"\x1b[31mfoo\x1b[0m",
 		},
 		{
 			"only bg color",
 			[]TextStyle{BgRed},
-			TextStyle{bg: &Color{basic: &bgRed}, style: color.Style{bgRed}},
+			TextStyle{bg: &Color{basic: &bgRed}, Style: color.Style{bgRed}},
 			"\x1b[41mfoo\x1b[0m",
 		},
 		{
@@ -58,7 +55,7 @@ func TestMerge(t *testing.T) {
 			TextStyle{
 				fg:    &Color{basic: &fgBlue},
 				bg:    &Color{basic: &bgRed},
-				style: color.Style{fgBlue, bgRed},
+				Style: color.Style{fgBlue, bgRed},
 			},
 			"\x1b[34;41mfoo\x1b[0m",
 		},
@@ -67,9 +64,28 @@ func TestMerge(t *testing.T) {
 			[]TextStyle{AttrBold},
 			TextStyle{
 				decoration: Decoration{bold: true},
-				style:      color.Style{color.OpBold},
+				Style:      color.Style{color.OpBold},
 			},
 			"\x1b[1mfoo\x1b[0m",
+		},
+		{
+			"dim attribute",
+			[]TextStyle{AttrDim},
+			TextStyle{
+				decoration: Decoration{dim: true},
+				Style:      color.Style{color.OpFuzzy},
+			},
+			"\x1b[2mfoo\x1b[0m",
+		},
+		{
+			"dim attribute and color",
+			[]TextStyle{FgRed.SetDim()},
+			TextStyle{
+				fg:         &Color{basic: &fgRed},
+				decoration: Decoration{dim: true},
+				Style:      color.Style{fgRed, color.OpFuzzy},
+			},
+			"\x1b[31;2mfoo\x1b[0m",
 		},
 		{
 			"multiple attributes",
@@ -79,7 +95,7 @@ func TestMerge(t *testing.T) {
 					bold:      true,
 					underline: true,
 				},
-				style: color.Style{color.OpBold, color.OpUnderscore},
+				Style: color.Style{color.OpBold, color.OpUnderscore},
 			},
 			"\x1b[1;4mfoo\x1b[0m",
 		},
@@ -93,7 +109,7 @@ func TestMerge(t *testing.T) {
 					bold:      true,
 					underline: true,
 				},
-				style: color.Style{fgBlue, bgRed, color.OpBold, color.OpUnderscore},
+				Style: color.Style{fgBlue, bgRed, color.OpBold, color.OpUnderscore},
 			},
 			"\x1b[34;41;1;4mfoo\x1b[0m",
 		},
@@ -102,7 +118,7 @@ func TestMerge(t *testing.T) {
 			[]TextStyle{New().SetFg(rgbPink)},
 			TextStyle{
 				fg:    &rgbPink,
-				style: color.NewRGBStyle(rgbPinkLib).SetOpts(color.Opts{}),
+				Style: color.NewRGBStyle(rgbPinkLib).SetOpts(color.Opts{}),
 			},
 			// '38;2' qualifies an RGB foreground color
 			"\x1b[38;2;255;0;255mfoo\x1b[0m",
@@ -113,7 +129,7 @@ func TestMerge(t *testing.T) {
 			TextStyle{
 				fg:    &rgbPink,
 				bg:    &rgbYellow,
-				style: color.NewRGBStyle(rgbPinkLib, rgbYellowLib).SetOpts(color.Opts{}),
+				Style: color.NewRGBStyle(rgbPinkLib, rgbYellowLib).SetOpts(color.Opts{}),
 			},
 			// '48;2' qualifies an RGB background color
 			"\x1b[38;2;255;0;255;48;2;255;255;0mfoo\x1b[0m",
@@ -128,27 +144,42 @@ func TestMerge(t *testing.T) {
 					bold:      true,
 					underline: true,
 				},
-				style: color.NewRGBStyle(rgbPinkLib, rgbYellowLib).SetOpts(color.Opts{color.OpBold, color.OpUnderscore}),
+				Style: color.NewRGBStyle(rgbPinkLib, rgbYellowLib).SetOpts(color.Opts{color.OpBold, color.OpUnderscore}),
 			},
 			"\x1b[38;2;255;0;255;48;2;255;255;0;1;4mfoo\x1b[0m",
 		},
 		{
-			"mix color-16 with rgb colors",
+			"mix color-16 (background) with rgb (foreground)",
 			[]TextStyle{New().SetFg(rgbYellow), BgRed},
 			TextStyle{
 				fg: &rgbYellow,
 				bg: &Color{basic: &bgRed},
-				style: color.NewRGBStyle(
+				Style: color.NewRGBStyle(
 					rgbYellowLib,
 					fgRed.RGB(), // We need to use FG here,  https://github.com/gookit/color/issues/39
 				).SetOpts(color.Opts{}),
 			},
 			"\x1b[38;2;255;255;0;48;2;197;30;20mfoo\x1b[0m",
 		},
+		{
+			"mix color-16 (foreground) with rgb (background)",
+			[]TextStyle{FgRed, New().SetBg(rgbYellow)},
+			TextStyle{
+				fg: &Color{basic: &fgRed},
+				bg: &rgbYellow,
+				Style: color.NewRGBStyle(
+					fgRed.RGB(),
+					rgbYellowLib,
+				).SetOpts(color.Opts{}),
+			},
+			"\x1b[38;2;197;30;20;48;2;255;255;0mfoo\x1b[0m",
+		},
 	}
 
+	oldColorLevel := color.ForceSetColorLevel(terminfo.ColorLevelMillions)
+	defer color.ForceSetColorLevel(oldColorLevel)
+
 	for _, s := range scenarios {
-		s := s
 		t.Run(s.name, func(t *testing.T) {
 			style := New()
 			for _, other := range s.toMerge {
@@ -195,8 +226,10 @@ func TestTemplateFuncMapAddColors(t *testing.T) {
 		},
 	}
 
+	oldColorLevel := color.ForceSetColorLevel(terminfo.ColorLevelMillions)
+	defer color.ForceSetColorLevel(oldColorLevel)
+
 	for _, s := range scenarios {
-		s := s
 		t.Run(s.name, func(t *testing.T) {
 			tmpl, err := template.New("test template").Funcs(TemplateFuncMapAddColors(template.FuncMap{})).Parse(s.tmpl)
 			assert.NoError(t, err)

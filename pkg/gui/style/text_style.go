@@ -30,26 +30,28 @@ type TextStyle struct {
 	bg         *Color
 	decoration Decoration
 
-	style Sprinter
+	// making this public so that we can use a type switch to get to the underlying
+	// value so we can cache styles. This is very much a hack.
+	Style Sprinter
 }
 
 type Sprinter interface {
-	Sprint(a ...interface{}) string
-	Sprintf(format string, a ...interface{}) string
+	Sprint(a ...any) string
+	Sprintf(format string, a ...any) string
 }
 
 func New() TextStyle {
 	s := TextStyle{}
-	s.style = s.deriveStyle()
+	s.Style = s.deriveStyle()
 	return s
 }
 
-func (b TextStyle) Sprint(a ...interface{}) string {
-	return b.style.Sprint(a...)
+func (b TextStyle) Sprint(a ...any) string {
+	return b.Style.Sprint(a...)
 }
 
-func (b TextStyle) Sprintf(format string, a ...interface{}) string {
-	return b.style.Sprintf(format, a...)
+func (b TextStyle) Sprintf(format string, a ...any) string {
+	return b.Style.Sprintf(format, a...)
 }
 
 // note that our receiver here is not a pointer which means we're receiving a
@@ -57,31 +59,43 @@ func (b TextStyle) Sprintf(format string, a ...interface{}) string {
 // TextStyle receiver without actually modifying the original.
 func (b TextStyle) SetBold() TextStyle {
 	b.decoration.SetBold()
-	b.style = b.deriveStyle()
+	b.Style = b.deriveStyle()
+	return b
+}
+
+func (b TextStyle) SetDim() TextStyle {
+	b.decoration.SetDim()
+	b.Style = b.deriveStyle()
 	return b
 }
 
 func (b TextStyle) SetUnderline() TextStyle {
 	b.decoration.SetUnderline()
-	b.style = b.deriveStyle()
+	b.Style = b.deriveStyle()
 	return b
 }
 
 func (b TextStyle) SetReverse() TextStyle {
 	b.decoration.SetReverse()
-	b.style = b.deriveStyle()
+	b.Style = b.deriveStyle()
+	return b
+}
+
+func (b TextStyle) SetStrikethrough() TextStyle {
+	b.decoration.SetStrikethrough()
+	b.Style = b.deriveStyle()
 	return b
 }
 
 func (b TextStyle) SetBg(color Color) TextStyle {
 	b.bg = &color
-	b.style = b.deriveStyle()
+	b.Style = b.deriveStyle()
 	return b
 }
 
 func (b TextStyle) SetFg(color Color) TextStyle {
 	b.fg = &color
-	b.style = b.deriveStyle()
+	b.Style = b.deriveStyle()
 	return b
 }
 
@@ -96,7 +110,7 @@ func (b TextStyle) MergeStyle(other TextStyle) TextStyle {
 		b.bg = other.bg
 	}
 
-	b.style = b.deriveStyle()
+	b.Style = b.deriveStyle()
 
 	return b
 }
